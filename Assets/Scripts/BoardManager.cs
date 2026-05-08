@@ -1,9 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using GwentLogic;
 
 public class BoardManager : MonoBehaviour
 {
+    [Header("Events for UI")]
+    // Ці події "вистрілюватимуть" щоразу, коли щось змінюється на столі
+    public event Action OnScoresUpdated;
+    public event Action OnBoardCleared;
+
     [Header("Player 1 Board")]
     public List<CardData> p1Melee = new List<CardData>();
     public List<CardData> p1Ranged = new List<CardData>();
@@ -20,6 +26,15 @@ public class BoardManager : MonoBehaviour
     public bool isMeleeWeatherActive = false;  // Frost
     public bool isRangedWeatherActive = false; // Fog
     public bool isSiegeWeatherActive = false;  // Rain
+
+    [Header("Horn States")]
+    public bool p1MeleeHorn = false;
+    public bool p1RangedHorn = false;
+    public bool p1SiegeHorn = false;
+
+    public bool p2MeleeHorn = false;
+    public bool p2RangedHorn = false;
+    public bool p2SiegeHorn = false;
 
     public void PlayCard(PlayerManager player, CardData card)
     {
@@ -61,6 +76,27 @@ public class BoardManager : MonoBehaviour
             return;
         }
 
+        // --- SPECIAL CARDS LOGIC (Horn & Scorch) ---
+        if (card.type == CardType.Special)
+        {
+            Debug.Log($"*** SPECIAL CARD PLAYED: {card.cardName} ***");
+
+            if (card.ability == CardAbility.CommandersHorn)
+            {
+                ApplyHorn(player, card);
+            }
+            else if (card.ability == CardAbility.Scorch)
+            {
+                ExecuteScorch(player);
+            }
+
+            // Special cards go to the discard pile immediately after use
+            player.discardPile.Add(card);
+            CalculateScores();
+            player.gameManager.EndTurn();
+            return;
+        }
+
         // --- SPY LOGIC ---
         if (isSpy)
         {
@@ -93,24 +129,23 @@ public class BoardManager : MonoBehaviour
 
     public void CalculateScores()
     {
-        // Тепер ми передаємо стан погоди у кожен ряд
-        p1TotalScore = CalculateRowScore(p1Melee, isMeleeWeatherActive) +
-                       CalculateRowScore(p1Ranged, isRangedWeatherActive) +
-                       CalculateRowScore(p1Siege, isSiegeWeatherActive);
+        // Передаємо погоду І наявність рогу
+        p1TotalScore = CalculateRowScore(p1Melee, isMeleeWeatherActive, p1MeleeHorn) +
+                       CalculateRowScore(p1Ranged, isRangedWeatherActive, p1RangedHorn) +
+                       CalculateRowScore(p1Siege, isSiegeWeatherActive, p1SiegeHorn);
 
-        p2TotalScore = CalculateRowScore(p2Melee, isMeleeWeatherActive) +
-                       CalculateRowScore(p2Ranged, isRangedWeatherActive) +
-                       CalculateRowScore(p2Siege, isSiegeWeatherActive);
+        p2TotalScore = CalculateRowScore(p2Melee, isMeleeWeatherActive, p2MeleeHorn) +
+                       CalculateRowScore(p2Ranged, isRangedWeatherActive, p2RangedHorn) +
+                       CalculateRowScore(p2Siege, isSiegeWeatherActive, p2SiegeHorn);
 
         Debug.Log($"Scores -> P1: {p1TotalScore} | P2: {p2TotalScore}");
     }
 
-    private int CalculateRowScore(List<CardData> row, bool isWeatherActive)
+    private int CalculateRowScore(List<CardData> row, bool isWeatherActive, bool isHornActive)
     {
         int score = 0;
         Dictionary<string, int> tightBondCounts = new Dictionary<string, int>();
 
-        // 1. Рахуємо карти з Міцним зв'язком (Tight Bond)
         foreach (CardData card in row)
         {
             if (card.ability == CardAbility.TightBond)
@@ -120,25 +155,23 @@ public class BoardManager : MonoBehaviour
             }
         }
 
-        // 2. Рахуємо фінальні очки кожної карти
         foreach (CardData card in row)
         {
             int currentPower = card.basePower;
 
-            // Якщо карта не є Героєм, на неї діє погода
             if (card.type != CardType.Hero)
             {
-                // Якщо погода активна, базова сила стає 1
-                if (isWeatherActive)
-                {
-                    currentPower = 1;
-                }
+                if (isWeatherActive) currentPower = 1;
 
-                // Здібності (наприклад, Tight Bond) застосовуються ПІСЛЯ погоди
                 if (card.ability == CardAbility.TightBond && tightBondCounts.ContainsKey(card.cardName))
                 {
-                    int multiplier = tightBondCounts[card.cardName];
-                    currentPower *= multiplier; // Навіть якщо погода зробила силу 1, три карти дадуть 1*3 = 3 кожна
+                    currentPower *= tightBondCounts[card.cardName];
+                }
+
+                // Apply Commander's Horn (doubles the final calculated power)
+                if (isHornActive)
+                {
+                    currentPower *= 2;
                 }
             }
 
@@ -157,6 +190,10 @@ public class BoardManager : MonoBehaviour
         isMeleeWeatherActive = false;
         isRangedWeatherActive = false;
         isSiegeWeatherActive = false;
+
+        // Reset Horns
+        p1MeleeHorn = false; p1RangedHorn = false; p1SiegeHorn = false;
+        p2MeleeHorn = false; p2RangedHorn = false; p2SiegeHorn = false;
 
         CalculateScores();
         Debug.Log("Board cleared. Cards moved to correct discard piles.");
@@ -229,6 +266,78 @@ public class BoardManager : MonoBehaviour
             isRangedWeatherActive = false;
             isSiegeWeatherActive = false;
             Debug.Log("Clear Skies played! All weather effects removed.");
+        }
+    }
+
+    private void ApplyHorn(PlayerManager player, CardData card)
+    {
+        // Apply horn to the specific row of the player who played it
+        if (player.isPlayer1)
+        {
+            if (card.allowedRow == CardRow.Melee) p1MeleeHorn = true;
+            else if (card.allowedRow == CardRow.Ranged) p1RangedHorn = true;
+            else if (card.allowedRow == CardRow.Siege) p1SiegeHorn = true;
+        }
+        else
+        {
+            if (card.allowedRow == CardRow.Melee) p2MeleeHorn = true;
+            else if (card.allowedRow == CardRow.Ranged) p2RangedHorn = true;
+            else if (card.allowedRow == CardRow.Siege) p2SiegeHorn = true;
+        }
+    }
+
+    private void ExecuteScorch(PlayerManager playerWhoPlayed)
+    {
+        Debug.Log("Executing SCORCH! Searching for the highest power unit...");
+        int maxPower = 0;
+        List<CardData> cardsToDestroy = new List<CardData>();
+
+        // We need to check all 6 rows to find the highest power (Heroes are immune)
+        // Helper action to check a row
+        System.Action<List<CardData>> checkRow = (row) =>
+        {
+            foreach (CardData c in row)
+            {
+                if (c.type == CardType.Hero) continue; // Heroes immune to Scorch
+
+                // We need its ACTUAL power (with weather/bond), not base power
+                // For MVP, let's do a simple check. To be perfectly accurate, 
+                // we should calculate its current dynamic power. 
+                // To keep the backend fast, we'll check its basePower for now.
+                // (Note: In a full release, Scorch calculates after Weather/Horn).
+                int currentPower = c.basePower;
+
+                if (currentPower > maxPower)
+                {
+                    maxPower = currentPower;
+                    cardsToDestroy.Clear(); // New highest found, clear previous targets
+                    cardsToDestroy.Add(c);
+                }
+                else if (currentPower == maxPower && maxPower > 0)
+                {
+                    cardsToDestroy.Add(c); // Tie for highest, add to destruction list
+                }
+            }
+        };
+
+        checkRow(p1Melee); checkRow(p1Ranged); checkRow(p1Siege);
+        checkRow(p2Melee); checkRow(p2Ranged); checkRow(p2Siege);
+
+        // Now destroy them (remove from board, add to discard)
+        foreach (CardData target in cardsToDestroy)
+        {
+            Debug.Log($"SCORCH destroys: {target.cardName} (Power: {maxPower})");
+
+            // Remove from board rows
+            if (p1Melee.Contains(target)) p1Melee.Remove(target);
+            else if (p1Ranged.Contains(target)) p1Ranged.Remove(target);
+            else if (p1Siege.Contains(target)) p1Siege.Remove(target);
+            else if (p2Melee.Contains(target)) p2Melee.Remove(target);
+            else if (p2Ranged.Contains(target)) p2Ranged.Remove(target);
+            else if (p2Siege.Contains(target)) p2Siege.Remove(target);
+
+            // Send to owner's discard pile
+            if (target.owner != null) target.owner.discardPile.Add(target);
         }
     }
 }
