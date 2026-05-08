@@ -30,6 +30,11 @@ public class PlayerManager : MonoBehaviour
     private void InitializeDeck()
     {
         deck = new List<CardData>(startingDeck);
+        // Set ownership
+        foreach (CardData card in deck)
+        {
+            card.owner = this;
+        }
         ShuffleDeck();
     }
 

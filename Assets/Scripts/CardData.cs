@@ -11,6 +11,12 @@ public class CardData : ScriptableObject
     public CardRow allowedRow;
     public int basePower;
 
+    [Header("Special Ability")]
+    public CardAbility ability = CardAbility.None;
+
+    [HideInInspector]
+    public PlayerManager owner;
+
     [TextArea]
     public string description; // Опис для UI
 }
