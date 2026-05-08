@@ -12,9 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 615e52b3aac7ef44996dae0826cd8bfc, type: 3}
   m_Name: Weather
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardName: Weather
+  cardName: Frost
   faction: 0
   type: 2
-  allowedRow: 4
+  allowedRow: 0
   basePower: 0
+  ability: 0
+  owner: {fileID: 0}
   description: 

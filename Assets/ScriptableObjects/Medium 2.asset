@@ -17,4 +17,6 @@ MonoBehaviour:
   type: 0
   allowedRow: 1
   basePower: 7
+  ability: 3
+  owner: {fileID: 0}
   description: 

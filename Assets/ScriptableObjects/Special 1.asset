@@ -12,9 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 615e52b3aac7ef44996dae0826cd8bfc, type: 3}
   m_Name: Special 1
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardName: Special 1
+  cardName: Scorch
   faction: 0
   type: 3
   allowedRow: 3
   basePower: 0
+  ability: 5
+  owner: {fileID: 0}
   description: 
