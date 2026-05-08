@@ -24,4 +24,13 @@
         Orks,
         Undead
     }
+
+    public enum GameState
+    {
+        Setup,          // Роздача карт на початку
+        Player1Turn,    // Хід першого гравця
+        Player2Turn,    // Хід другого гравця
+        RoundEnd,       // Підрахунок очок за раунд
+        MatchEnd        // Кінець всієї гри (хтось виграв 2 раунди)
+    }
 }

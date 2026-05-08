@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 615e52b3aac7ef44996dae0826cd8bfc, type: 3}
   m_Name: Long 1
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardName: 
+  cardName: Long 1
   faction: 0
   type: 0
-  allowedRow: 0
-  basePower: 0
+  allowedRow: 2
+  basePower: 8
   description: 

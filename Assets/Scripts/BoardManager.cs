@@ -4,78 +4,70 @@ using GwentLogic;
 
 public class BoardManager : MonoBehaviour
 {
-    [Header("Player 1 Board Rows")]
-    public List<CardData> meleeRow = new List<CardData>();
-    public List<CardData> rangedRow = new List<CardData>();
-    public List<CardData> siegeRow = new List<CardData>();
+    [Header("Player 1 Board")]
+    public List<CardData> p1Melee = new List<CardData>();
+    public List<CardData> p1Ranged = new List<CardData>();
+    public List<CardData> p1Siege = new List<CardData>();
+    public int p1TotalScore = 0;
 
-    [Header("Player 1 Scores")]
-    public int meleeScore = 0;
-    public int rangedScore = 0;
-    public int siegeScore = 0;
-    public int totalScore = 0;
+    [Header("Player 2 Board")]
+    public List<CardData> p2Melee = new List<CardData>();
+    public List<CardData> p2Ranged = new List<CardData>();
+    public List<CardData> p2Siege = new List<CardData>();
+    public int p2TotalScore = 0;
 
-    // Method to play a card from the player's hand to the board
     public void PlayCard(PlayerManager player, CardData card)
     {
-        // 1. Check if the card is actually in the player's hand
-        if (!player.hand.Contains(card))
-        {
-            Debug.LogWarning("Cannot play this card: It is not in the hand!");
-            return;
-        }
+        if (!player.hand.Contains(card)) return;
 
-        // 2. Remove the card from the hand
         player.hand.Remove(card);
 
-        // 3. Place the card in the correct row based on its allowedRow property
-        switch (card.allowedRow)
+        // Place card on the correct side of the board based on who played it
+        if (player.isPlayer1)
         {
-            case CardRow.Melee:
-                meleeRow.Add(card);
-                break;
-            case CardRow.Ranged:
-                rangedRow.Add(card);
-                break;
-            case CardRow.Siege:
-                siegeRow.Add(card);
-                break;
-            case CardRow.Any:
-                // For MVP backend test, default "Any" to Melee. 
-                // Later, the UI will let the player choose the row.
-                meleeRow.Add(card);
-                break;
-            default:
-                Debug.LogWarning("This card type cannot be played on the unit board.");
-                return; // Stop execution if it's weather or special (for now)
+            PlaceCardInRow(card, p1Melee, p1Ranged, p1Siege);
+        }
+        else
+        {
+            PlaceCardInRow(card, p2Melee, p2Ranged, p2Siege);
         }
 
-        Debug.Log($"Successfully played {card.cardName} to the {card.allowedRow} row.");
-
-        // 4. Recalculate scores after the board state changes
         CalculateScores();
     }
 
-    // Calculates the score for all rows
-    public void CalculateScores()
+    private void PlaceCardInRow(CardData card, List<CardData> melee, List<CardData> ranged, List<CardData> siege)
     {
-        meleeScore = CalculateRowScore(meleeRow);
-        rangedScore = CalculateRowScore(rangedRow);
-        siegeScore = CalculateRowScore(siegeRow);
-
-        totalScore = meleeScore + rangedScore + siegeScore;
-
-        Debug.Log($"Scores updated. Total Score: {totalScore}");
+        switch (card.allowedRow)
+        {
+            case CardRow.Melee: melee.Add(card); break;
+            case CardRow.Ranged: ranged.Add(card); break;
+            case CardRow.Siege: siege.Add(card); break;
+            case CardRow.Any: melee.Add(card); break; // Default to melee for now
+        }
+        Debug.Log($"Card {card.cardName} placed in {card.allowedRow} row.");
     }
 
-    // Helper method to sum up the base power of cards in a specific row
+    public void CalculateScores()
+    {
+        p1TotalScore = CalculateRowScore(p1Melee) + CalculateRowScore(p1Ranged) + CalculateRowScore(p1Siege);
+        p2TotalScore = CalculateRowScore(p2Melee) + CalculateRowScore(p2Ranged) + CalculateRowScore(p2Siege);
+
+        Debug.Log($"Scores -> P1: {p1TotalScore} | P2: {p2TotalScore}");
+    }
+
     private int CalculateRowScore(List<CardData> row)
     {
         int score = 0;
-        foreach (CardData card in row)
-        {
-            score += card.basePower;
-        }
+        foreach (CardData card in row) score += card.basePower;
         return score;
+    }
+
+    // Clears all cards from the board and resets scores to 0
+    public void ClearBoard()
+    {
+        p1Melee.Clear(); p1Ranged.Clear(); p1Siege.Clear();
+        p2Melee.Clear(); p2Ranged.Clear(); p2Siege.Clear();
+        CalculateScores();
+        Debug.Log("Board cleared for the next round.");
     }
 }
