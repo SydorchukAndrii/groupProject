@@ -5,11 +5,6 @@ using GwentLogic;
 
 public class BoardManager : MonoBehaviour
 {
-    [Header("Events for UI")]
-    // Ці події "вистрілюватимуть" щоразу, коли щось змінюється на столі
-    public event Action OnScoresUpdated;
-    public event Action OnBoardCleared;
-
     [Header("Player 1 Board")]
     public List<CardData> p1Melee = new List<CardData>();
     public List<CardData> p1Ranged = new List<CardData>();
@@ -35,6 +30,11 @@ public class BoardManager : MonoBehaviour
     public bool p2MeleeHorn = false;
     public bool p2RangedHorn = false;
     public bool p2SiegeHorn = false;
+
+    // --- Events for UI ---
+    // Ці події "вистрілюватимуть" щоразу, коли щось змінюється на столі
+    public event Action OnScoresUpdated;
+    public event Action OnBoardCleared;
 
     public void PlayCard(PlayerManager player, CardData card)
     {
@@ -139,6 +139,8 @@ public class BoardManager : MonoBehaviour
                        CalculateRowScore(p2Siege, isSiegeWeatherActive, p2SiegeHorn);
 
         Debug.Log($"Scores -> P1: {p1TotalScore} | P2: {p2TotalScore}");
+
+        OnScoresUpdated?.Invoke();
     }
 
     private int CalculateRowScore(List<CardData> row, bool isWeatherActive, bool isHornActive)
@@ -197,6 +199,8 @@ public class BoardManager : MonoBehaviour
 
         CalculateScores();
         Debug.Log("Board cleared. Cards moved to correct discard piles.");
+
+        OnBoardCleared?.Invoke();
     }
 
     private void MoveToDiscard(List<CardData> row)
