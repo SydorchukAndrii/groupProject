@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem; // For the New Input System
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem; // New Input System
+#endif
 using GwentLogic;
 
 public class PlayerManager : MonoBehaviour
@@ -81,22 +83,36 @@ public class PlayerManager : MonoBehaviour
         if (!isMyTurn) return;
 
         // 4. Input detection for playing a card and passing
-        if (Keyboard.current != null)
-        {
-            // P1 uses Space to play, P uses to Pass
-            // P2 uses Enter to play, L uses to Pass
-            bool playKey = isPlayer1 ? Keyboard.current.spaceKey.wasPressedThisFrame : Keyboard.current.enterKey.wasPressedThisFrame;
-            bool passKey = isPlayer1 ? Keyboard.current.pKey.wasPressedThisFrame : Keyboard.current.lKey.wasPressedThisFrame;
+#if ENABLE_INPUT_SYSTEM
+        if (Keyboard.current == null) return;
 
-            if (playKey)
-            {
-                PlayFirstCardInHand();
-            }
-            else if (passKey)
-            {
-                PassTurn();
-            }
+        // P1 uses Space to play, P uses to Pass
+        // P2 uses Enter to play, L uses to Pass
+        bool playKey = isPlayer1 ? Keyboard.current.spaceKey.wasPressedThisFrame : Keyboard.current.enterKey.wasPressedThisFrame;
+        bool passKey = isPlayer1 ? Keyboard.current.pKey.wasPressedThisFrame : Keyboard.current.lKey.wasPressedThisFrame;
+
+        if (playKey)
+        {
+            PlayFirstCardInHand();
         }
+        else if (passKey)
+        {
+            PassTurn();
+        }
+#else
+        // Legacy Input Manager fallback (Project Settings -> Player -> Active Input Handling)
+        bool playKey = isPlayer1 ? Input.GetKeyDown(KeyCode.Space) : Input.GetKeyDown(KeyCode.Return);
+        bool passKey = isPlayer1 ? Input.GetKeyDown(KeyCode.P) : Input.GetKeyDown(KeyCode.L);
+
+        if (playKey)
+        {
+            PlayFirstCardInHand();
+        }
+        else if (passKey)
+        {
+            PassTurn();
+        }
+#endif
     }
 
     private void PlayFirstCardInHand()
